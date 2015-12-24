@@ -17,12 +17,25 @@ Category.mature = function(id, limit, after, before, callback) {
             "where": {
                 categoryId: id,
                 mature: true,
-		gameId: {gt: after}
+		gameId: {gt: hashids.decode(after)}
             },
             "limit": limit
-        }, function(err, gameArr) {
+        }, function(err, gameArray) {
             if (err) return callback(err);
-            callback(null, gameArr);
+            //callback(null, gameArr);
+	    callback(null, {
+                "perPage": limit,
+                "total": gameArray.length,
+                "data": gameArray,
+                "paging": {
+                        "cursors": {
+                        "after": gameArray[gameArray.length-1].gameId,// last game_id in result
+                        "before": gameArray[0].gameId // first game_id in result
+			},
+                "previous": "http://localhost:3000/api/Categories/1004/games/mature?before=" + gameArray[0].gameId,
+                "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
+                }
+            });
         });
 	//set before cursor
 	}else if(before){
@@ -30,13 +43,26 @@ Category.mature = function(id, limit, after, before, callback) {
             "where": {
                 categoryId: id,
                 mature: true,
-                gameId: {lt: before}
+                gameId: {lt: hashids.decode(before)}
             },
             "order": 'gameId DESC',
 	    "limit": limit
-        }, function(err, gameArr) {
+        }, function(err, gameArray) {
             if (err) return callback(err);
-            callback(null, gameArr.reverse());
+            //callback(null, gameArr.reverse());
+	    callback(null, {
+                "perPage": limit,
+                "total": gameArray.length,
+                "data": gameArray.reverse,
+                "paging": {
+                        "cursors": {
+                        "after": gameArray[gameArray.length-1].gameId,// last game_id in result
+                        "before": gameArray[0].gameId // first game_id in result
+			},
+                "previous": "http://localhost:3000/api/Categories/1004/games/mature?before=" + gameArray[0].gameId,
+                "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
+		}
+            });
         });
 	}else if(after === undefined && before === undefined){
         Games.find({
@@ -45,9 +71,22 @@ Category.mature = function(id, limit, after, before, callback) {
                 mature: true
             },
 	    "limit": limit
-        }, function(err, gameArr) {
+        }, function(err, gameArray) {
             if (err) return callback(err);
-            callback(null, gameArr);
+            //callback(null, gameArr);
+	    callback(null, {
+  		"perPage": limit,
+  		"total": gameArray.length,
+  		"data": gameArray,
+  		"paging": {
+    			"cursors": {
+      			"after": gameArray[gameArray.length-1].gameId,// last game_id in result
+      			"before": gameArray[0].gameId // first game_id in result
+    			},
+  		"previous": "http://localhost:3000/api/Categories/1004/games/mature?before=" + gameArray[0].gameId,
+                "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
+		}
+	    })
         });
 	}
     });
@@ -56,26 +95,11 @@ Category.mature = function(id, limit, after, before, callback) {
 
 Category.remoteMethod(
         'mature', {
-            accepts: [{
-                arg: 'id',
-                type: 'number',
-                required: true
-            },
-	    {
-    		arg: 'limit',
-    		type: 'number',
-    		required: false
-  	    },
-	    {
-		arg: 'after',
-		type: 'number',
-		required: false
-	    },
-	    {
-		arg: 'before',
-                type: 'number',
-                required: false
-	    }  	
+            accepts: [
+	      	{arg: 'id', type: 'number', required: true},
+    		{arg: 'limit',type: 'number',required: false},
+    		{arg: 'after',type: 'string',required: false},
+    		{arg: 'before',type: 'string',required: false}
 	    ],
             // mixing ':id' into the rest url allows $owner to be determined and used for access control
             http: {
@@ -83,8 +107,8 @@ Category.remoteMethod(
                 verb: 'get'
             },
             returns: {
-                arg: 'games',
-                type: 'array'
+                root: true,
+                type: 'object' // will be whatever is passed back as 2nd arg to callback()
             }
         }
 );
