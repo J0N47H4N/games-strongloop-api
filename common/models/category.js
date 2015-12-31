@@ -4,7 +4,12 @@ Category.mature = function(id, limit, after, before, callback) {
     var app = this.app;
     var Games = app.models.Games;
     Category.findById(id, {}, function(err, category){
-        if (err) return callback(err);
+        //if (err) return callback(err);
+	if(!category) {
+        	var err = new Error('Category ID ' + id + ' does not exist.');
+        	err.statusCode = 404;
+        	callback(err);
+        }else{
 	//set limit
 	if (limit && limit > 5){
 	  limit = 5;
@@ -17,11 +22,12 @@ Category.mature = function(id, limit, after, before, callback) {
             "where": {
                 categoryId: id,
                 mature: true,
-		gameId: {gt: hashids.decode(after)}
+		gameId: {gt: after}
             },
             "limit": limit
         }, function(err, gameArray) {
-            if (err) return callback(err);
+	    if(gameArray.length > 0) {
+	    if (err) return callback(err);
             //callback(null, gameArr);
 	    callback(null, {
                 "perPage": limit,
@@ -36,6 +42,11 @@ Category.mature = function(id, limit, after, before, callback) {
                 "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
                 }
             });
+	    }else{
+		var err = new Error('No games found.');
+        	err.statusCode = 404;
+        	callback(err);
+	    }
         });
 	//set before cursor
 	}else if(before){
@@ -43,11 +54,12 @@ Category.mature = function(id, limit, after, before, callback) {
             "where": {
                 categoryId: id,
                 mature: true,
-                gameId: {lt: hashids.decode(before)}
+                gameId: {lt: before}
             },
             "order": 'gameId DESC',
 	    "limit": limit
         }, function(err, gameArray) {
+	    if(gameArray.length > 0) {
             if (err) return callback(err);
             //callback(null, gameArr.reverse());
 	    callback(null, {
@@ -63,6 +75,11 @@ Category.mature = function(id, limit, after, before, callback) {
                 "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
 		}
             });
+    	    }else{
+	    	var err = new Error('No games found.');
+        	err.statusCode = 404;
+        	callback(err);
+	    }
         });
 	}else if(after === undefined && before === undefined){
         Games.find({
@@ -72,8 +89,9 @@ Category.mature = function(id, limit, after, before, callback) {
             },
 	    "limit": limit
         }, function(err, gameArray) {
-            if (err) return callback(err);
-            //callback(null, gameArr);
+	    if(gameArray.length > 0) {
+	    if (err) return callback(err);
+	    //callback(null, gameArr);
 	    callback(null, {
   		"perPage": limit,
   		"total": gameArray.length,
@@ -87,7 +105,13 @@ Category.mature = function(id, limit, after, before, callback) {
                 "next": "http://localhost:3000/api/Categories/1004/games/mature?after=" + gameArray[gameArray.length-1].gameId
 		}
 	    })
+	    }else{
+		var err = new Error('No games found.');
+        	err.statusCode = 404;
+        	callback(err);	
+	    }
         });
+	}
 	}
     });
 }
